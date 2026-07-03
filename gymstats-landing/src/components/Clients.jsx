@@ -36,6 +36,9 @@ function Clients({ clients, setClients }) {
     setName("")
     setEditingId(null)
   }
+  const [search, setSearch] = useState("")
+  const filteredClients = clients.filter(c => c.name.toLowerCase().includes(search.trim().toLowerCase()))
+
 
   return (
     <section style={styles.container}>
@@ -50,7 +53,7 @@ function Clients({ clients, setClients }) {
       />
 
       <div style={styles.list}>
-        {clients.map(client => (
+        {filteredClients.map(client => (
           <ClientCard
             key={client.id}
             client={client}

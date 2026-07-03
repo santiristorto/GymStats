@@ -3,6 +3,12 @@ function Dashboard({ clients }) {
   const active = clients.filter(c => c.status === "Activo").length
   const inactive = clients.filter(c => c.status === "Inactivo").length
   const percentActive = total === 0 ? 0 : Math.round((active / total) * 100)
+  const activeClients = clients.filter(client => client.status === "Activo")
+
+  const totalIncome = activeClients.reduce(
+    (sum, client) => sum + client.monthlyFee,
+    0
+  )
 
   return (
     <section style={styles.container}>
@@ -27,6 +33,10 @@ function Dashboard({ clients }) {
         <div className="card">
               <h3>% Activos</h3>
           <p>{percentActive}%</p>
+        </div>
+        <div className="card">
+          <h3>Ingresos totales</h3>
+          <p>${totalIncome.toLocaleString("es-AR")}</p>        
         </div>
       </div>
     </section>
