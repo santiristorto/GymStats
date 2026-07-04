@@ -3,6 +3,7 @@ import Navbar from "./components/Navbar"
 import Hero from "./components/Hero"
 import Dashboard from "./components/Dashboard"
 import Clients from "./components/Clients"
+import Sidebar from "./components/Sidebar"
 
 function App() {
   const [clients, setClients] = useState(() => {
@@ -15,34 +16,30 @@ function App() {
   }, [clients])
 
   const [view, setView] = useState("dashboard")
+  return(<div className="app-layout">
 
-  return (
-    <div className="app-layout">
+  <Sidebar
+    view={view}
+    setView={setView}
+  />
 
-      <aside className="sidebar">
-        <h2>GymStats</h2>
+  <main className="content">
 
-        <button onClick={() => setView("dashboard")}>
-          Dashboard
-        </button>
+    {view === "dashboard" && (
+      <Dashboard clients={clients} />
+    )}
 
-        <button onClick={() => setView("clients")}>
-          Clientes
-        </button>
-      </aside>
+    {view === "clients" && (
+      <Clients
+        clients={clients}
+        setClients={setClients}
+      />
+    )}
 
-      <main className="content">
-        {view === "dashboard" && (
-          <Dashboard clients={clients} />
-        )}
+  </main>
 
-        {view === "clients" && (
-          <Clients clients={clients} setClients={setClients} />
-        )}
-      </main>
-
-    </div>
-  )
+</div>
+)
 }
 
 export default App

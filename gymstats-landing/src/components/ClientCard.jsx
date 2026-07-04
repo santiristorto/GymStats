@@ -4,11 +4,13 @@ function ClientCard({ client, onEdit, onDelete }) {
       <h3>{client.name}</h3>
       <p>Estado: {client.status}</p>
 
-      <div style={styles.buttons}>
-        <button onClick={() => onEdit(client)}>Editar</button>
-        <button onClick={() => onDelete(client.id)}>Eliminar</button>
+      <div style={styles.buttonedit}>
+       <button className="buttonedit" onClick={() => onEdit(client)}>Editar</button>
       </div>
-    </div>
+      <div style={styles.buttondel}>
+        <button className="buttondel" onClick={() => onDelete(client.id)}>Eliminar</button>
+      </div>
+    </div> 
   )
 }
 
@@ -19,11 +21,6 @@ const styles = {
     borderRadius: "8px",
     minWidth: "180px",
   },
-  buttons: {
-    display: "flex",
-    gap: "10px",
-    marginTop: "10px",
   }
-}
 
 export default ClientCard
