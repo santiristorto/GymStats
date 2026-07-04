@@ -1,0 +1,49 @@
+.settings-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  margin-bottom: 18px;
+}
+
+.settings-card h2 {
+  font-size: 15px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 14px;
+}
+
+.settings-card .form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.settings-note {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 16px;
+  max-width: 560px;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.danger-zone {
+  border-color: var(--color-danger-dim);
+}
+
+.danger-zone h2 {
+  color: var(--color-danger);
+}
+
+@media (max-width: 480px) {
+  .settings-card .form-grid {
+    grid-template-columns: 1fr;
+  }
+}

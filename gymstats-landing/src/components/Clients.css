@@ -1,0 +1,158 @@
+.clients-toolbar-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.clients-toolbar-row .toolbar {
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0 12px;
+  color: var(--color-text-dim);
+}
+
+.search-box input {
+  border: none;
+  background: transparent;
+  flex: 1;
+  padding: 9px 0;
+}
+
+.search-box input:focus {
+  outline: none;
+}
+
+.toolbar select {
+  min-width: 160px;
+}
+
+.client-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--color-primary-dim);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.contact-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.due-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.icon-btn:hover {
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+.icon-btn-danger:hover {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+/* Tabla -> tarjetas apiladas en pantallas chicas */
+@media (max-width: 760px) {
+  .clients-table thead {
+    display: none;
+  }
+
+  .clients-table,
+  .clients-table tbody,
+  .clients-table tr,
+  .clients-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .clients-table tr {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .clients-table td {
+    border: none;
+    padding: 6px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .clients-table td::before {
+    content: attr(data-label);
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+    font-weight: 600;
+  }
+
+  .clients-table td[data-label="Nombre"]::before {
+    content: none;
+  }
+
+  .row-actions {
+    justify-content: flex-start;
+  }
+}

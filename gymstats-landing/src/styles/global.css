@@ -1,99 +1,361 @@
+/* =========================================================
+   GymStats — Design tokens
+   Paleta "gimnasio de barrio, gestión seria": hierro cálido +
+   naranja señal (cinta de marcaje de piso / discos de goma),
+   con verdes y ámbares reservados solo para estados semánticos.
+   Tipografía: Oswald (condensada, tipo scoreboard) para títulos
+   y números grandes; Inter para texto e interfaz densa de datos.
+   ========================================================= */
+
+:root {
+  /* Superficies */
+  --color-bg: #15161a;
+  --color-surface: #1c1e24;
+  --color-surface-2: #24272e;
+  --color-border: #2f333b;
+  --color-border-strong: #3c414b;
+
+  /* Texto */
+  --color-text: #f3f4f1;
+  --color-text-muted: #9aa0ab;
+  --color-text-dim: #6b7078;
+
+  /* Marca */
+  --color-primary: #ff6a34;
+  --color-primary-hover: #ff8256;
+  --color-primary-dim: rgba(255, 106, 52, 0.14);
+  --color-on-primary: #191207;
+
+  /* Estados semánticos */
+  --color-success: #46c37b;
+  --color-success-dim: rgba(70, 195, 123, 0.14);
+  --color-warning: #f0b429;
+  --color-warning-dim: rgba(240, 180, 41, 0.14);
+  --color-danger: #f0554b;
+  --color-danger-dim: rgba(240, 85, 75, 0.14);
+  --color-info: #5b8def;
+  --color-info-dim: rgba(91, 141, 239, 0.14);
+  --color-muted: #8b90a0;
+  --color-muted-dim: rgba(139, 144, 160, 0.14);
+
+  /* Tipografía */
+  --font-display: "Oswald", "Arial Narrow", sans-serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* Radios y sombras */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.32);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.4);
+
+  --transition: 160ms ease;
+  --sidebar-width: 240px;
+}
+
+/* ---------- Reset ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background-color: #0F172A;
-  color: white;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
-button {
-  padding: 8px 12px;
-  border: none;
-  cursor: pointer;
-  border-radius: 6px;
-  background-color: #22C55E;
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  margin: 0;
 }
 
-.buttonedit{
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
-    background-color: #3B82F6;
-    align-items: center;
-  }
-.buttondel{
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
-    background-color: #EF4444;
-    align-items: center;
-  }
-
-input {
-  padding: 8px;
-  border-radius: 6px;
-  border: none;
-}
-.navbar {
-  display: flex;
-  justify-content: space-between;
-  padding: 20px 40px;
-  background-color: #181818;
-  align-items: center;
+p {
+  margin: 0;
 }
 
-.links {
-  display: flex;
-  gap: 20px;
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 a {
-  color: white;
-  text-decoration: none;
-  opacity: 0.8;
+  color: inherit;
 }
 
-a:hover {
-  opacity: 1;
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  color: inherit;
 }
 
-.card {
-  background-color: #1E293B;
-  padding: 15px;
-  border-radius: 10px;
-  border: 1px solid #333;
+#root {
+  height: 100%;
 }
 
-.card:hover {
-  transform: scale(1.02);
-  transition: 0.2s;
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
 
-.app-layout {
-  display: flex;
-  height: 100vh;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.sidebar {
-  width: 220px;
-  background-color: #111827;
-  padding: 20px;
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 999px;
+}
+
+/* ---------- Focus visible ---------- */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ---------- Botones ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), transform var(--transition), opacity var(--transition);
+  white-space: nowrap;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.btn-secondary {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--color-primary);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+.btn-danger {
+  background: var(--color-danger);
+  color: #1a0b0a;
+}
+
+.btn-danger:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+/* ---------- Inputs ---------- */
+label {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-weight: 500;
 }
 
-.sidebar button {
-  background-color: #2a2a2a;
-  color: white;
+input,
+select,
+textarea {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--color-text);
+  transition: border-color var(--transition);
 }
 
-.sidebar button:hover {
-  background-color: #3a3a3a;
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-dim);
 }
 
-.content {
-  flex: 1;
-  padding: 30px;
-  background-color: #0f0f0f;
-  overflow-y: auto;
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
 }
+
+textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.field-error {
+  color: var(--color-danger);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ---------- Utilidades ---------- */
+.dim {
+  color: var(--color-text-dim);
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.page-head h1 {
+  font-size: 28px;
+  text-transform: uppercase;
+}
+
+.page-subtitle {
+  color: var(--color-text-muted);
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.table-wrap {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-dim);
+  font-weight: 600;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+tbody td {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ---------- Impresión (usado por "Exportar PDF") ---------- */
+@media print {
+  .sidebar,
+  .topbar,
+  .toast-stack,
+  .page-head .btn,
+  .toolbar,
+  .row-actions,
+  .empty-state-action,
+  .export-actions {
+    display: none !important;
+  }
+
+  .app-layout,
+  .app-main,
+  .content {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .table-wrap,
+  .dashboard-card,
+  .panel,
+  .summary-card,
+  .settings-card {
+    border-color: #ccc !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+}
+

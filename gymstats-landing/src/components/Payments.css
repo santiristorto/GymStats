@@ -1,0 +1,76 @@
+.payments-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.payments-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.summary-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  color: var(--color-text-muted);
+}
+
+.summary-card.success {
+  color: var(--color-success);
+}
+.summary-card.danger {
+  color: var(--color-danger);
+}
+
+.summary-label {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-dim);
+}
+
+.summary-card strong {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--color-text);
+}
+
+@media (max-width: 760px) {
+  .payments-table thead {
+    display: none;
+  }
+  .payments-table,
+  .payments-table tbody,
+  .payments-table tr,
+  .payments-table td {
+    display: block;
+    width: 100%;
+  }
+  .payments-table tr {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .payments-table td {
+    border: none;
+    padding: 6px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .payments-table td[data-label]:not([data-label=""])::before {
+    content: attr(data-label);
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+    font-weight: 600;
+  }
+}
