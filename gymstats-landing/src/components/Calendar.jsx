@@ -3,9 +3,11 @@ import { ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
 import Modal from "./Modal";
 import Badge from "./Badge";
 import EmptyState from "./EmptyState";
-import { getClientsDueOnDay, currentYearMonth } from "../utils/clients";
+import { getClientsDueOnDay, currentYearMonth, registerPayment } from "../utils/clients";
 import { formatCurrency } from "../utils/format";
 import { openWhatsAppReminder } from "../utils/whatsapp";
+import { editClient } from "../services/clientService";
+import { useToast } from "../hooks/useToast";
 import "./Calendar.css";
 
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
@@ -23,7 +25,8 @@ function buildMonthGrid(year, month) {
   return cells;
 }
 
-function Calendar({ clients, settings, onOpenClient }) {
+function Calendar({ clients, setClients, settings, onOpenClient }) {
+  const { showToast } = useToast();
   const today = new Date();
   const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDay, setSelectedDay] = useState(null);
@@ -42,6 +45,18 @@ function Calendar({ clients, settings, onOpenClient }) {
   const selectedClients = selectedDay ? dueClientsForDay(selectedDay) : [];
 
   const activeClientsCount = clients.filter((c) => c.status === "Activo").length;
+
+  const handleMarkPaid = async (client) => {
+    try {
+      const fields = registerPayment(client, { amount: client.monthlyFee, concept: "Cuota mensual" });
+      const updated = await editClient(client.id, fields);
+      setClients((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      showToast(`Pago de ${client.name} registrado`);
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "No se pudo registrar el pago", "danger");
+    }
+  };
 
   return (
     <section className="calendar-page">
@@ -125,13 +140,20 @@ function Calendar({ clients, settings, onOpenClient }) {
                   <div className="alert-meta">
                     <Badge tone={paid ? "success" : "warning"}>{paid ? "Pagado" : "Pendiente"}</Badge>
                     {!paid && (
-                      <button
-                        className="icon-btn"
-                        onClick={() => openWhatsAppReminder(client)}
-                        aria-label={`Enviar recordatorio a ${client.name}`}
-                      >
-                        <MessageCircle size={16} />
-                      </button>
+                      <>
+                        <button
+                          className="icon-btn"
+                          onClick={() => openWhatsAppReminder(client)}
+                          aria-label={`Enviar recordatorio a ${client.name}`}
+                        >
+                          <MessageCircle size={16} />
+                        </button>
+                        {displayedYm === currentYearMonth() && (
+                          <button className="btn btn-sm btn-secondary" onClick={() => handleMarkPaid(client)}>
+                            Marcar pagado
+                          </button>
+                        )}
+                      </>
                     )}
                     <button className="btn btn-ghost btn-sm" onClick={() => onOpenClient?.(client.id)}>
                       Abrir

@@ -84,18 +84,22 @@ export function daysBetween(dateA, dateB = new Date()) {
   return Math.round((a - b) / 86400000);
 }
 
+export const PAYMENT_CONCEPTS = ["Cuota mensual", "Matrícula", "Producto", "Otro"];
+
 /**
  * Resumen financiero del mes actual para los clientes activos:
- * esperado (suma de cuotas), cobrado (cuotas ya pagadas este mes) y pendiente.
+ * esperado (suma de cuotas) vs. cobrado (suma real de pagos de "Cuota
+ * mensual" registrados este mes, contempla pagos parciales).
  */
 export function getFinancialSummary(clients, today = new Date()) {
   const active = clients.filter((c) => c.status === "Activo");
   const ym = currentYearMonth(today);
 
   const expected = active.reduce((sum, c) => sum + (Number(c.monthlyFee) || 0), 0);
-  const collected = active
-    .filter((c) => c.lastPaymentMonth === ym)
-    .reduce((sum, c) => sum + (Number(c.monthlyFee) || 0), 0);
+
+  const collected = getAllTransactions(clients)
+    .filter((t) => t.month === ym && (t.concept || "Cuota mensual") === "Cuota mensual")
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
   return { expected, collected, pending: Math.max(expected - collected, 0) };
 }
@@ -192,6 +196,75 @@ export function getClientsDueOnDay(clients, year, month, day) {
     if (c.status !== "Activo") return false;
     const dueDay = Math.min(clamp(Number(c.paymentDay) || 1, 1, 31), daysInMonth);
     return dueDay === day;
+  });
+}
+
+/** Suma pagada por un cliente en un mes puntual para un concepto dado. */
+export function getMonthlyConceptTotal(client, ym, concept = "Cuota mensual") {
+  return (client.paymentHistory || [])
+    .filter((p) => p.month === ym && (p.concept || "Cuota mensual") === concept)
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+}
+
+/**
+ * Arma los campos a actualizar en Supabase al registrar un cobro (total o
+ * parcial). Si el concepto es "Cuota mensual" y con este pago se llega a
+ * cubrir la cuota completa del mes, marca el mes como pagado.
+ */
+export function registerPayment(client, { amount, concept = "Cuota mensual", note = "" }, today = new Date()) {
+  const ym = currentYearMonth(today);
+  const entry = {
+    month: ym,
+    date: today.toISOString(),
+    amount: Number(amount) || 0,
+    concept,
+    note,
+  };
+  const paymentHistory = [...(client.paymentHistory || []), entry];
+
+  let lastPaymentMonth = client.lastPaymentMonth;
+  if (concept === "Cuota mensual") {
+    const totalPaid = getMonthlyConceptTotal({ paymentHistory }, ym, "Cuota mensual");
+    if (totalPaid >= (Number(client.monthlyFee) || 0)) {
+      lastPaymentMonth = ym;
+    }
+  }
+
+  return { paymentHistory, lastPaymentMonth };
+}
+
+/**
+ * Deshace el último pago registrado: lo saca del historial y recalcula si
+ * el mes actual sigue contando como pagado (por si había pagos parciales).
+ */
+export function undoLastPayment(client, today = new Date()) {
+  const history = [...(client.paymentHistory || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
+  if (history.length === 0) return { paymentHistory: [], lastPaymentMonth: client.lastPaymentMonth };
+
+  const [, ...rest] = history;
+  const ym = currentYearMonth(today);
+  const totalPaidThisMonth = getMonthlyConceptTotal({ paymentHistory: rest }, ym, "Cuota mensual");
+  const lastPaymentMonth =
+    totalPaidThisMonth >= (Number(client.monthlyFee) || 0) && client.lastPaymentMonth === ym
+      ? ym
+      : client.lastPaymentMonth === ym
+        ? ""
+        : client.lastPaymentMonth;
+
+  return { paymentHistory: rest, lastPaymentMonth };
+}
+
+/** Busca un cliente existente con el mismo teléfono o email (para avisar de posibles duplicados). */
+export function findDuplicateClient(clients, form, excludeId = null) {
+  const phone = (form.phone || "").trim().toLowerCase();
+  const email = (form.email || "").trim().toLowerCase();
+  if (!phone && !email) return null;
+
+  return clients.find((c) => {
+    if (c.id === excludeId) return false;
+    const samePhone = phone && (c.phone || "").trim().toLowerCase() === phone;
+    const sameEmail = email && (c.email || "").trim().toLowerCase() === email;
+    return samePhone || sameEmail;
   });
 }
 

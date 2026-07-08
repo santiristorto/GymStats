@@ -23,12 +23,14 @@ function Caja({ clients, settings }) {
   const exportColumns = [
     { key: "date", label: "Fecha" },
     { key: "clientName", label: "Cliente" },
+    { key: "concept", label: "Concepto" },
     { key: "month", label: "Mes correspondiente" },
     { key: "amount", label: "Monto" },
   ];
   const exportRows = transactions.map((t) => ({
     date: formatDate(t.date),
     clientName: t.clientName,
+    concept: t.concept || "Cuota mensual",
     month: t.month,
     amount: t.amount,
   }));
@@ -101,6 +103,7 @@ function Caja({ clients, settings }) {
               <tr>
                 <th>Fecha</th>
                 <th>Cliente</th>
+                <th>Concepto</th>
                 <th>Mes correspondiente</th>
                 <th>Monto</th>
               </tr>
@@ -110,6 +113,7 @@ function Caja({ clients, settings }) {
                 <tr key={`${t.clientId}-${t.month}-${i}`}>
                   <td data-label="Fecha">{formatDate(t.date)}</td>
                   <td data-label="Cliente">{t.clientName}</td>
+                  <td data-label="Concepto">{t.concept || "Cuota mensual"}</td>
                   <td data-label="Mes correspondiente">{t.month}</td>
                   <td data-label="Monto">{formatCurrency(t.amount, settings.currency)}</td>
                 </tr>

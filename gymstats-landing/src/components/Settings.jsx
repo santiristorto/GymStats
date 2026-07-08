@@ -1,24 +1,55 @@
-import { useRef } from "react";
-import { Download, Upload, Trash2, Save } from "lucide-react";
+import { useRef, useState } from "react";
+import { Download, Upload, Trash2, Save, CreditCard } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { useConfirm } from "../hooks/useConfirm";
+import { replaceAllClients, deleteAllClients } from "../services/clientService";
+import { updateGym } from "../services/gymService";
 import "./Settings.css";
 
 const CURRENCIES = ["ARS", "USD", "EUR", "MXN", "CLP", "UYU"];
 
-function Settings({ clients, setClients, settings, setSettings }) {
+function Settings({ clients, refreshClients, settings, setSettings, gym, setGym }) {
   const fileInputRef = useRef(null);
   const { showToast } = useToast();
   const [confirm, confirmDialog] = useConfirm();
+  const [savingGeneral, setSavingGeneral] = useState(false);
+  const [mpToken, setMpToken] = useState(gym.mp_access_token || "");
+  const [savingMp, setSavingMp] = useState(false);
 
   const handleSettingsChange = (e) => {
     const { name, value } = e.target;
     setSettings((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSaveSettings = (e) => {
+  const handleSaveSettings = async (e) => {
     e.preventDefault();
-    showToast("Ajustes guardados");
+    setSavingGeneral(true);
+    try {
+      const updated = await updateGym(gym.id, { name: settings.gymName, currency: settings.currency });
+      setGym(updated);
+      showToast("Ajustes guardados");
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "No se pudieron guardar los ajustes", "danger");
+    } finally {
+      setSavingGeneral(false);
+    }
+  };
+
+  const handleSaveMp = async (e) => {
+    e.preventDefault();
+    setSavingMp(true);
+    try {
+      const updated = await updateGym(gym.id, { mp_access_token: mpToken.trim() });
+      setGym(updated);
+      setMpToken(updated.mp_access_token || "");
+      showToast("Credencial de Mercado Pago guardada");
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "No se pudo guardar la credencial", "danger");
+    } finally {
+      setSavingMp(false);
+    }
   };
 
   const handleExport = () => {
@@ -47,30 +78,38 @@ function Settings({ clients, setClients, settings, setSettings }) {
 
       const ok = await confirm({
         title: "Restaurar backup",
-        message: `Se van a reemplazar los ${clients.length} clientes actuales por ${data.clients.length} del archivo. ¿Continuar?`,
+        message: `Se van a reemplazar los ${clients.length} clientes actuales en Supabase por ${data.clients.length} del archivo. ¿Continuar?`,
         confirmLabel: "Restaurar",
         tone: "danger",
       });
       if (!ok) return;
 
-      setClients(data.clients);
-      if (data.settings) setSettings((prev) => ({ ...prev, ...data.settings }));
+      await replaceAllClients(data.clients, gym.id);
+      await refreshClients();
       showToast("Backup restaurado correctamente");
-    } catch {
-      showToast("No se pudo leer el archivo. Verificá que sea un backup válido.", "danger");
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "No se pudo leer el archivo. Verificá que sea un backup válido.", "danger");
     }
   };
 
   const handleReset = async () => {
     const ok = await confirm({
       title: "Borrar todos los datos",
-      message: "Esta acción va a eliminar todos los clientes guardados en este navegador. No se puede deshacer.",
+      message: "Esta acción va a eliminar todos los clientes guardados en Supabase. No se puede deshacer.",
       confirmLabel: "Borrar todo",
       tone: "danger",
     });
     if (!ok) return;
-    setClients([]);
-    showToast("Datos eliminados", "danger");
+
+    try {
+      await deleteAllClients(gym.id);
+      await refreshClients();
+      showToast("Datos eliminados", "danger");
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "No se pudieron borrar los datos", "danger");
+    }
   };
 
   return (
@@ -100,16 +139,42 @@ function Settings({ clients, setClients, settings, setSettings }) {
             </select>
           </label>
         </div>
-        <button type="submit" className="btn btn-primary">
-          <Save size={16} /> Guardar cambios
+        <button type="submit" className="btn btn-primary" disabled={savingGeneral}>
+          <Save size={16} /> {savingGeneral ? "Guardando..." : "Guardar cambios"}
+        </button>
+      </form>
+
+      <form className="settings-card" onSubmit={handleSaveMp}>
+        <h2>Mercado Pago</h2>
+        <p className="settings-note">
+          Pegá acá tu <strong>Access Token</strong> de producción (Mercado Pago → Tu negocio → Configuración →
+          Credenciales). Se usa solo del lado del servidor (Edge Function) para generar los links de cobro, nunca
+          se envía al navegador de tus clientes.
+        </p>
+        {gym.mp_access_token && (
+          <p className="settings-note mp-configured">✓ Ya tenés una credencial guardada para este gimnasio.</p>
+        )}
+        <div className="form-grid">
+          <label className="full-width">
+            Access Token
+            <input
+              type="password"
+              value={mpToken}
+              onChange={(e) => setMpToken(e.target.value)}
+              placeholder="APP_USR-xxxxxxxxxxxxxxxx"
+            />
+          </label>
+        </div>
+        <button type="submit" className="btn btn-secondary" disabled={savingMp}>
+          <CreditCard size={16} /> {savingMp ? "Guardando..." : "Guardar credencial"}
         </button>
       </form>
 
       <div className="settings-card">
         <h2>Respaldo de datos</h2>
         <p className="settings-note">
-          GymStats guarda toda la información en este navegador (no hay servidor ni base de datos todavía).
-          Descargá una copia periódicamente para no perder datos si cambiás de equipo o borrás el caché.
+          GymStats guarda toda la información en Supabase. Igual, descargá una copia
+          periódicamente como respaldo adicional por si necesitás restaurar datos.
         </p>
         <div className="settings-actions">
           <button className="btn btn-secondary" onClick={handleExport}>
@@ -124,7 +189,7 @@ function Settings({ clients, setClients, settings, setSettings }) {
 
       <div className="settings-card danger-zone">
         <h2>Zona de riesgo</h2>
-        <p className="settings-note">Elimina permanentemente todos los clientes cargados en este navegador.</p>
+        <p className="settings-note">Elimina permanentemente todos los clientes guardados en Supabase.</p>
         <button className="btn btn-danger" onClick={handleReset}>
           <Trash2 size={16} /> Borrar todos los datos
         </button>

@@ -20,13 +20,13 @@ import {
   PAYMENT_STATUS_META,
 } from "../utils/clients";
 import { formatCurrency } from "../utils/format";
-import { generateSeedClients } from "../utils/seedData";
-import { useToast } from "../hooks/useToast";
 import "./Dashboard.css";
 
-function Dashboard({ clients, setClients, settings, onOpenClient }) {
-  const { showToast } = useToast();
-
+function Dashboard({
+  clients,
+  settings,
+  onOpenClient,
+}) {
   const total = clients.length;
   const active = clients.filter((c) => c.status === "Activo").length;
   const inactive = total - active;
@@ -45,10 +45,6 @@ function Dashboard({ clients, setClients, settings, onOpenClient }) {
     { key: "semana", label: "Próximos 7 días", rows: dueList.filter((r) => r.daysLeft >= 2 && r.daysLeft <= 7) },
   ];
 
-  const loadDemo = () => {
-    setClients(generateSeedClients());
-    showToast("Datos de ejemplo cargados");
-  };
 
   if (total === 0) {
     return (
@@ -59,10 +55,13 @@ function Dashboard({ clients, setClients, settings, onOpenClient }) {
           title="Bienvenido a GymStats"
           description="Todavía no cargaste ningún socio. Andá a Clientes para agregar el primero, o probá el panel con datos de ejemplo."
           action={
-            <button className="btn btn-primary" onClick={loadDemo}>
-              Cargar datos de ejemplo
-            </button>
-          }
+    <button
+      className="btn btn-primary"
+      onClick={() => onOpenClient?.()}
+    >
+      Agregar primer cliente
+    </button>
+}
         />
       </section>
     );
@@ -70,7 +69,15 @@ function Dashboard({ clients, setClients, settings, onOpenClient }) {
 
   return (
     <section className="dashboard">
-      <h1>Dashboard</h1>
+      <div className="page-title">
+    <h1>
+        Bienvenido a {settings.gymName}
+    </h1>
+
+    <p className="dim">
+        Resumen general del gimnasio
+    </p>
+</div>
 
       <div className="dashboard-grid">
         <div className="dashboard-card">
@@ -145,6 +152,20 @@ function Dashboard({ clients, setClients, settings, onOpenClient }) {
           <strong className="card-value">{formatCurrency(pending, settings.currency)}</strong>
         </div>
       </div>
+      <div className="dashboard-card">
+  <div className="card-icon info">
+    <Users size={20} />
+  </div>
+
+  <span className="card-label">
+    Clientes al día
+  </span>
+
+  <strong className="card-value">
+    {segments.find(s => s.key === "aldia")?.value || 0}
+  </strong>
+</div>
+
 
       <div className="dashboard-panels">
         <div className="panel">

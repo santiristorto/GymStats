@@ -28,6 +28,11 @@
   max-width: 560px;
 }
 
+.mp-configured {
+  color: var(--color-success);
+  margin-top: -8px;
+}
+
 .settings-actions {
   display: flex;
   gap: 10px;

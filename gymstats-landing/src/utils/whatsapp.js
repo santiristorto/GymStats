@@ -14,6 +14,20 @@ export function getReminderWhatsAppUrl(client) {
   return phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
 }
 
+export function buildPaymentLinkMessage(client, checkoutUrl) {
+  return `Hola ${client.name}, ¿cómo estás? Te paso el link para pagar tu cuota del gimnasio online: ${checkoutUrl}`;
+}
+
+export function getPaymentLinkWhatsAppUrl(client, checkoutUrl) {
+  const phone = sanitizePhone(client.phone);
+  const text = encodeURIComponent(buildPaymentLinkMessage(client, checkoutUrl));
+  return phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+}
+
 export function openWhatsAppReminder(client) {
   window.open(getReminderWhatsAppUrl(client), "_blank", "noopener,noreferrer");
+}
+
+export function openWhatsAppPaymentLink(client, checkoutUrl) {
+  window.open(getPaymentLinkWhatsAppUrl(client, checkoutUrl), "_blank", "noopener,noreferrer");
 }

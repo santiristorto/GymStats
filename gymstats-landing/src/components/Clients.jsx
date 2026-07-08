@@ -6,13 +6,24 @@ import EmptyState from "./EmptyState";
 import ExportButtons from "./ExportButtons";
 import { useConfirm } from "../hooks/useConfirm";
 import { useToast } from "../hooks/useToast";
-import { createEmptyClient, getPaymentStatus, PAYMENT_STATUS_META } from "../utils/clients";
+import { createEmptyClient, getPaymentStatus, PAYMENT_STATUS_META, findDuplicateClient } from "../utils/clients";
 import { formatCurrency } from "../utils/format";
-import { generateSeedClients } from "../utils/seedData";
 import { openWhatsAppReminder } from "../utils/whatsapp";
 import "./Clients.css";
+import {
+  addClient,
+  editClient,
+  deleteClient,
+} from "../services/clientService";
 
-function Clients({ clients, setClients, settings, focusClientId, onFocusHandled }) {
+function Clients({
+  clients,
+  setClients,
+  settings,
+  gym,
+  focusClientId,
+  onFocusHandled,
+}) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [paymentFilter, setPaymentFilter] = useState("todos");
@@ -50,39 +61,72 @@ function Clients({ clients, setClients, settings, focusClientId, onFocusHandled 
   const openEdit = (client) => setModalState({ mode: "edit", data: { ...client } });
   const closeModal = () => setModalState(null);
 
-  const handleSave = (form) => {
-    const normalized = {
-      ...form,
-      monthlyFee: Number(form.monthlyFee) || 0,
-      paymentDay: Number(form.paymentDay) || 1,
-    };
+  const handleSave = async (form) => {
+    try {
+      const normalized = {
+        ...form,
+        monthlyFee: Number(form.monthlyFee) || 0,
+        paymentDay: Number(form.paymentDay) || 1,
+      };
 
-    if (modalState.mode === "create") {
-      setClients((prev) => [...prev, normalized]);
-      showToast("Cliente agregado correctamente");
-    } else {
-      setClients((prev) => prev.map((c) => (c.id === normalized.id ? normalized : c)));
-      showToast("Cliente actualizado");
+      const excludeId = modalState.mode === "edit" ? normalized.id : null;
+      const duplicate = findDuplicateClient(clients, normalized, excludeId);
+      if (duplicate) {
+        const ok = await confirm({
+          title: "Posible cliente duplicado",
+          message: `Ya existe "${duplicate.name}" con el mismo teléfono o email. ¿Querés guardar igual?`,
+          confirmLabel: "Guardar igual",
+          tone: "primary",
+        });
+        if (!ok) return;
+      }
+
+      if (modalState.mode === "create") {
+        const newClient = await addClient(normalized, gym.id);
+        setClients((prev) => [...prev, newClient]);
+        showToast("Cliente agregado correctamente");
+      } else {
+        const updatedClient = await editClient(normalized.id, normalized);
+        setClients((prev) => prev.map((c) => (c.id === updatedClient.id ? updatedClient : c)));
+        showToast("Cliente actualizado");
+      }
+
+      closeModal();
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "Error al guardar el cliente", "danger");
     }
-    closeModal();
   };
-
   const handleDelete = async (client) => {
-    const ok = await confirm({
-      title: "Eliminar cliente",
-      message: `¿Seguro que querés eliminar a ${client.name}? Esta acción no se puede deshacer.`,
-      confirmLabel: "Eliminar",
-      tone: "danger",
-    });
-    if (!ok) return;
-    setClients((prev) => prev.filter((c) => c.id !== client.id));
-    showToast("Cliente eliminado", "danger");
-  };
+  const ok = await confirm({
+    title: "Eliminar cliente",
+    message: `¿Seguro que querés eliminar a ${client.name}?`,
+    confirmLabel: "Eliminar",
+    tone: "danger",
+  });
+
+  if (!ok) return;
+
+  try {
+    await deleteClient(client.id);
+
+    setClients((prev) =>
+      prev.filter((c) => c.id !== client.id)
+    );
+
+    showToast("Cliente eliminado");
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "No se pudo eliminar", "danger");
+  }
+};
 
   const loadDemo = () => {
-    setClients(generateSeedClients());
-    showToast("Datos de ejemplo cargados");
-  };
+  showToast(
+    "Los datos de ejemplo se agregarán desde Supabase en la próxima versión.",
+    "warning"
+  );
+};
 
   return (
     <section className="clients-page">

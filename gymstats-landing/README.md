@@ -1,28 +1,26 @@
-# GymStats — Panel de administración de gimnasio
+# GymStats — Panel de administración de gimnasio (multi-tenant)
 
-Panel para gestionar clientes, cuotas y pagos de un gimnasio. Hecho con React + Vite.
+Panel para que **varios gimnasios** gestionen sus clientes, cuotas, pagos y asistencia,
+cada uno viendo solo sus propios datos. Hecho con React + Vite + Supabase.
 
 ## ⚠️ Importante: cómo abrir el proyecto
 
 **No funciona haciendo doble clic en `index.html`.** Los navegadores bloquean por
 seguridad los módulos de JavaScript cuando se abren así (protocolo `file://`), y vas a
-ver la pantalla en blanco. Esto le pasa a cualquier proyecto hecho con React/Vite, no
-es un problema de esta app en particular — siempre hay que levantar un servidor local,
-aunque sea muy simple. Seguí uno de los dos caminos de abajo.
+ver la pantalla en blanco. Siempre hay que levantar un servidor (aunque sea local).
 
 ## Requisitos
 
 - [Node.js](https://nodejs.org/) 18 o superior (incluye `npm`)
+- Para Mercado Pago: [Supabase CLI](https://supabase.com/docs/guides/cli) instalada
+  (`npm install -g supabase`) y logueada en tu proyecto (`supabase login`)
 
-## Modo desarrollo (recomendado mientras trabajás en el proyecto)
+## Modo desarrollo
 
 ```bash
 npm install
 npm run dev
 ```
-
-Abrí la URL que te muestra la terminal (por defecto `http://localhost:5173`).
-Los cambios en el código se reflejan al instante.
 
 ## Generar la versión final para publicar
 
@@ -32,38 +30,166 @@ npm run build
 npm run preview
 ```
 
-`npm run build` genera la carpeta `dist/` lista para subir a cualquier hosting
-(Netlify, Vercel, GitHub Pages, un hosting compartido, etc). `npm run preview`
-te deja probarla localmente tal cual quedaría en producción, sirviéndola con
-un servidor (no abriendo el archivo directo).
+`npm run build` genera `dist/`, lista para subir a cualquier hosting con HTTPS
+(Netlify, Vercel, etc — **HTTPS es obligatorio** para que la PWA y el service worker
+funcionen). Subí el **contenido** de `dist/`, no la carpeta entera.
 
-Para publicarla en un hosting real, subí el **contenido** de la carpeta `dist/`
-(no la carpeta entera) a tu servidor.
+---
+
+## 🗄️ Setup de Supabase — correr en orden
+
+### 1. Tabla de gimnasios (multi-tenant)
+
+```sql
+create table public.gyms (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  name text not null default 'Mi gimnasio',
+  currency text not null default 'ARS',
+  mp_access_token text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.gyms enable row level security;
+
+create policy "Owners manage their own gym"
+on public.gyms
+for all
+to authenticated
+using (owner_id = auth.uid())
+with check (owner_id = auth.uid());
+```
+
+### 2. Vincular `clients` y `attendance` a un gimnasio
+
+```sql
+alter table public.clients add column gym_id uuid references public.gyms(id) on delete cascade;
+alter table public.attendance add column gym_id uuid references public.gyms(id) on delete cascade;
+
+drop policy if exists "Authenticated users can manage clients" on public.clients;
+drop policy if exists "Public full access to clients" on public.clients;
+
+create policy "Users manage clients of their own gym"
+on public.clients
+for all
+to authenticated
+using (gym_id in (select id from public.gyms where owner_id = auth.uid()))
+with check (gym_id in (select id from public.gyms where owner_id = auth.uid()));
+
+drop policy if exists "Authenticated users can manage attendance" on public.attendance;
+
+create policy "Users manage attendance of their own gym"
+on public.attendance
+for all
+to authenticated
+using (gym_id in (select id from public.gyms where owner_id = auth.uid()))
+with check (gym_id in (select id from public.gyms where owner_id = auth.uid()));
+```
+
+### 3. Migrar los datos que ya tenías cargados
+
+Como ya veníamos con clientes cargados de antes (single-tenant), hay que crear
+tu gimnasio y asignarle esos registros existentes:
+
+```sql
+-- 1) Buscá tu user id
+select id, email from auth.users;
+
+-- 2) Creá tu gimnasio (reemplazá el owner_id por el id de arriba)
+insert into public.gyms (owner_id, name, currency)
+values ('TU_USER_ID_AQUI', 'Mi gimnasio', 'ARS')
+returning id;
+
+-- 3) Con el id que te devolvió, asigná tus datos existentes
+update public.clients set gym_id = 'ID_DEL_GYM_AQUI' where gym_id is null;
+update public.attendance set gym_id = 'ID_DEL_GYM_AQUI' where gym_id is null;
+
+-- 4) Una vez migrado, hacé obligatorio el campo
+alter table public.clients alter column gym_id set not null;
+alter table public.attendance alter column gym_id set not null;
+```
+
+### 4. Habilitar el registro público (ahora es SaaS)
+
+En **Authentication → Settings**, activá "Allow new users to sign up" (si lo habías
+desactivado antes, dalo vuelta: ahora cualquier dueño de gimnasio se registra solo
+desde la pantalla de la app, y al entrar por primera vez le pide crear su gimnasio).
+
+### 5. Mercado Pago (Edge Functions)
+
+El código ya está en `supabase/functions/create-mp-preference` y `supabase/functions/mp-webhook`.
+Vos tenés que deployarlas:
+
+```bash
+supabase link --project-ref TU_PROJECT_REF   # una sola vez
+
+supabase secrets set SUPABASE_URL=https://TU_PROYECTO.supabase.co
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY=TU_SERVICE_ROLE_KEY
+# (Service Role Key: Project Settings → API → service_role — NUNCA la pongas en el frontend/.env)
+
+supabase functions deploy create-mp-preference
+supabase functions deploy mp-webhook --no-verify-jwt
+```
+
+Después, cada gimnasio pega **su propio** Access Token de Mercado Pago en
+**Ajustes → Mercado Pago** dentro de la app (Mercado Pago → Tu negocio → Credenciales
+de producción). Con eso, el botón "Enviar link de Mercado Pago" en Pagos genera un
+link de cobro y lo manda por WhatsApp; cuando el cliente paga, el webhook lo acredita
+solo, sin que vos hagas nada.
+
+**Importante**: esto usa Checkout Pro con `external_reference` para saber a qué
+cliente acreditar el pago. Es la integración más simple y suficiente para cobrar
+cuotas; no maneja suscripciones automáticas recurrentes (eso sería un paso más,
+con "Preapproval" de Mercado Pago, si en algún momento lo necesitás).
+
+---
 
 ## Funcionalidades
 
-- **Dashboard ejecutivo**: KPIs de clientes activos/inactivos, cuotas vencidas, que vencen hoy y esta semana, e ingresos esperado/cobrado/pendiente. Panel de próximos vencimientos agrupado en Hoy / Mañana / Próximos 7 días, con acceso directo a la ficha del cliente.
-- **Clientes**: alta, edición, baja, búsqueda por nombre/teléfono/email, filtro por estado y por estado de pago, recordatorio por WhatsApp, exportación a Excel/PDF.
-- **Pagos**: seguimiento de cuotas del mes, marcar como pagado, recordatorio por WhatsApp para quienes no pagaron.
-- **Calendario**: vista mensual con los vencimientos de cada día.
-- **Caja**: ingresos de hoy/semana/mes, historial de cobros, totales esperado/cobrado/pendiente, exportación a Excel/PDF.
-- **Estadísticas**: ingresos y cobros por mes, clientes nuevos por mes, activos vs. inactivos, morosidad (gráficos con Recharts).
-- **Ajustes**: nombre del gimnasio, moneda, backup y restauración de datos.
-
-## Datos
-
-Por ahora los datos (clientes, cuotas, pagos) se guardan en el navegador
-(`localStorage`), no hay servidor ni base de datos. Desde **Ajustes → Respaldo
-de datos** podés descargar un backup en JSON y restaurarlo cuando quieras,
-para no perder información si cambiás de equipo o borrás el caché.
+- **Multi-gimnasio (SaaS)**: cada usuario se registra, crea su gimnasio y ve solo sus propios datos (RLS por `gym_id`).
+- **Login / Registro**: Supabase Auth, con onboarding para crear el gimnasio la primera vez.
+- **Dashboard ejecutivo**: KPIs de activos/inactivos, vencidas, vencen hoy/semana, ingresos esperado/cobrado/pendiente, próximos vencimientos agrupados.
+- **Clientes**: alta/edición/baja, búsqueda, filtros, aviso de posible duplicado, recordatorio por WhatsApp, exportación a Excel/PDF.
+- **Asistencia**: check-in del día.
+- **Pagos**: cobros totales o parciales por concepto (cuota/matrícula/producto/otro), deshacer pago, recordatorio individual o masivo, cobro online con Mercado Pago.
+- **Calendario**: vencimientos por día, con acción de marcar pagado.
+- **Caja**: ingresos de hoy/semana/mes, historial con concepto, exportación.
+- **Estadísticas**: gráficos con Recharts.
+- **Ajustes**: nombre/moneda del gimnasio, credencial de Mercado Pago, backup y restauración.
+- **PWA**: instalable en el celular como app (ícono, pantalla completa, funciona con conexión intermitente para la parte ya cargada).
 
 ## Estructura del proyecto
 
 ```
 src/
-  components/   Componentes de UI (Dashboard, Clientes, Pagos, Calendario, Caja, Estadísticas, Ajustes, etc.)
-  context/      Contexto de notificaciones (toasts)
-  hooks/        Hooks reutilizables (localStorage, confirmación, toasts)
-  utils/        Lógica de negocio (formato, estado de pagos, exportación, WhatsApp)
-  styles/       Sistema de diseño (tokens de color, tipografía, base, impresión)
+  components/   Componentes de UI
+  context/      Auth, Gimnasio y Toasts (contextos globales)
+  hooks/        Hooks reutilizables
+  services/     Llamadas a Supabase (clientes, asistencia, gimnasio)
+  utils/        Lógica de negocio (formato, pagos, exportación, WhatsApp)
+  styles/       Sistema de diseño
+supabase/
+  functions/    Edge Functions de Mercado Pago (create-mp-preference, mp-webhook)
 ```
+
+## Pendiente / próximos pasos posibles
+
+Antes de vender esto en serio a otros gimnasios, en orden de importancia:
+
+1. **Probar el webhook de Mercado Pago con un pago real (o de prueba)**: generar un link, pagarlo con una
+   [tarjeta de test de Mercado Pago](https://www.mercadopago.com.ar/developers/es/docs/checkout-api/additional-content/test-cards),
+   y confirmar que el cliente queda marcado como pagado solo, sin tocar nada en la app. Esto todavía no se probó
+   de punta a punta.
+2. **Deployar el frontend** (no solo las Edge Functions) a un hosting con HTTPS — Netlify o Vercel, gratis. Sin esto
+   solo vos podés usar la app desde tu compu.
+3. **Probar con una segunda cuenta** (otro email) que el aislamiento entre gimnasios funciona: creá un gimnasio
+   nuevo, cargá un cliente, y confirmá que desde la cuenta original no se ve.
+4. **Activar credenciales de producción de Mercado Pago** cuando quieras cobrar plata real (las de prueba son
+   solo para testear el flujo).
+5. **Personalizar los emails de Supabase Auth** (confirmación de cuenta, recuperación de contraseña) — por defecto
+   son genéricos y en inglés. Se cambian en Authentication → Email Templates.
+6. **Notificaciones push**: queda para cuando quieras, depende de que todo lo anterior esté sólido primero
+   (necesita VAPID keys + una Edge Function con cron para mandar los recordatorios sola).
+7. Si esto se vuelve un producto real: términos de servicio, política de privacidad, y algún tipo de cobro a los
+   gimnasios que lo usen (vos también vas a querer cobrarles a ellos, ¿no? Eso es otra integración de Mercado
+   Pago/Stripe, pero para tus propios clientes en vez de los de ellos — avisame si llegás a ese punto).

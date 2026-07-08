@@ -1,9 +1,10 @@
 import "./Sidebar.css";
-import { Dumbbell, LayoutDashboard, Users, Wallet, CalendarDays, Landmark, BarChart3, Settings, X } from "lucide-react";
+import { Dumbbell, LayoutDashboard, Users, Wallet, CalendarDays, Landmark, BarChart3, Settings, X, LogOut, ClipboardCheck } from "lucide-react";
 
 const NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { key: "clients", label: "Clientes", icon: Users },
+  { key: "attendance", label: "Asistencia", icon: ClipboardCheck },
   { key: "payments", label: "Pagos", icon: Wallet },
   { key: "calendar", label: "Calendario", icon: CalendarDays },
   { key: "caja", label: "Caja", icon: Landmark },
@@ -11,7 +12,7 @@ const NAV_ITEMS = [
   { key: "settings", label: "Ajustes", icon: Settings },
 ];
 
-function Sidebar({ view, setView, gymName, isOpen, onClose }) {
+function Sidebar({ view, setView, gymName, isOpen, onClose, userEmail, onLogout }) {
   return (
     <>
       {isOpen && <div className="sidebar-backdrop" onClick={onClose} />}
@@ -43,6 +44,10 @@ function Sidebar({ view, setView, gymName, isOpen, onClose }) {
         </nav>
 
         <div className="sidebar-footer">
+          {userEmail && <p className="sidebar-user" title={userEmail}>{userEmail}</p>}
+          <button className="sidebar-logout" onClick={onLogout}>
+            <LogOut size={16} /> Cerrar sesión
+          </button>
           <p className="version">GymStats · v1.0</p>
         </div>
       </aside>
