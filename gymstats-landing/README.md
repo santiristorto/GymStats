@@ -142,6 +142,18 @@ cliente acreditar el pago. Es la integración más simple y suficiente para cobr
 cuotas; no maneja suscripciones automáticas recurrentes (eso sería un paso más,
 con "Preapproval" de Mercado Pago, si en algún momento lo necesitás).
 
+### 6. Actualización en vivo (Realtime)
+
+Para que la pantalla se actualice sola cuando el webhook de Mercado Pago acredita un
+pago (sin que tengas que recargar), corré esto una sola vez:
+
+```sql
+alter publication supabase_realtime add table public.clients;
+```
+
+Si no lo corrés, la app sigue funcionando igual, solo que vas a necesitar recargar la
+página para ver los pagos que se acreditan por Mercado Pago.
+
 ---
 
 ## Funcionalidades
@@ -176,10 +188,8 @@ supabase/
 
 Antes de vender esto en serio a otros gimnasios, en orden de importancia:
 
-1. **Probar el webhook de Mercado Pago con un pago real (o de prueba)**: generar un link, pagarlo con una
-   [tarjeta de test de Mercado Pago](https://www.mercadopago.com.ar/developers/es/docs/checkout-api/additional-content/test-cards),
-   y confirmar que el cliente queda marcado como pagado solo, sin tocar nada en la app. Esto todavía no se probó
-   de punta a punta.
+1. ~~Probar el webhook de Mercado Pago~~ ✅ Confirmado: cuando pagan, el cliente queda marcado como pagado.
+   Con el paso de Realtime de arriba, ahora además se ve solo en pantalla sin recargar.
 2. **Deployar el frontend** (no solo las Edge Functions) a un hosting con HTTPS — Netlify o Vercel, gratis. Sin esto
    solo vos podés usar la app desde tu compu.
 3. **Probar con una segunda cuenta** (otro email) que el aislamiento entre gimnasios funciona: creá un gimnasio

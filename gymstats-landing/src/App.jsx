@@ -17,6 +17,7 @@ import { GymProvider } from "./context/GymContext.jsx";
 import { useAuth } from "./hooks/useAuth";
 import { useGym } from "./hooks/useGym";
 import { getClients } from "./services/clientService";
+import { supabase } from "./lib/supabase";
 import "./App.css";
 
 const Stats = lazy(() => import("./components/Stats"));
@@ -66,6 +67,35 @@ function AppShell() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadClients();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gym.id]);
+
+  // Se suscribe a cambios en vivo de "clients" para este gimnasio: cuando el
+  // webhook de Mercado Pago acredita un pago (o cualquier otro cambio hecho
+  // fuera de esta pestaña), la pantalla se actualiza sola, sin recargar.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`clients-changes-${gym.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "clients", filter: `gym_id=eq.${gym.id}` },
+        (payload) => {
+          setClients((prev) => {
+            if (payload.eventType === "DELETE") {
+              return prev.filter((c) => c.id !== payload.old.id);
+            }
+            const exists = prev.some((c) => c.id === payload.new.id);
+            if (exists) {
+              return prev.map((c) => (c.id === payload.new.id ? payload.new : c));
+            }
+            return [...prev, payload.new];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [gym.id]);
 
   const refreshClients = async () => {
