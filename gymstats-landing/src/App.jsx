@@ -79,6 +79,7 @@ function AppShell() {
         "postgres_changes",
         { event: "*", schema: "public", table: "clients", filter: `gym_id=eq.${gym.id}` },
         (payload) => {
+          console.log("[GymStats realtime] cambio recibido:", payload.eventType, payload.new || payload.old);
           setClients((prev) => {
             if (payload.eventType === "DELETE") {
               return prev.filter((c) => c.id !== payload.old.id);
@@ -91,11 +92,24 @@ function AppShell() {
           });
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        console.log("[GymStats realtime] estado de la suscripción:", status, err || "");
+      });
 
     return () => {
       supabase.removeChannel(channel);
     };
+  }, [gym.id]);
+
+  // Red de respaldo: si por algún motivo el realtime no llega (WebSocket
+  // cortado en el celu, red inestable, etc.), esto igual mantiene los datos
+  // al día refrescando cada 45 segundos en segundo plano.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadClients();
+    }, 45000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gym.id]);
 
   const refreshClients = async () => {
