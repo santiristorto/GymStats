@@ -154,6 +154,55 @@ alter publication supabase_realtime add table public.clients;
 Si no lo corrés, la app sigue funcionando igual, solo que vas a necesitar recargar la
 página para ver los pagos que se acreditan por Mercado Pago.
 
+### 7. Notificaciones push
+
+```sql
+create table public.push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  gym_id uuid not null references public.gyms(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.push_subscriptions enable row level security;
+
+create policy "Users manage their own push subscriptions"
+on public.push_subscriptions
+for all
+to authenticated
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+```
+
+Deployá las dos funciones nuevas y configurá las claves VAPID (ya generadas y puestas
+en tu `.env` como `VITE_VAPID_PUBLIC_KEY` — la privada NUNCA va en el frontend):
+
+```bash
+supabase secrets set VAPID_PUBLIC_KEY=BFEujlQzP2XfrYzUJEAMuFa2TZmNTQN9IM_0rGcneUjv9VTvOTz4Qwph-A6phPE4hXlxs9mjaENHI9aKLTYkevo
+supabase secrets set VAPID_PRIVATE_KEY=JX61Yv0_y1Yo-0mTzId_2qt_06V6c53gUaofZN6GcyQ
+
+supabase functions deploy send-push
+supabase functions deploy send-payment-reminders
+```
+
+Probalo desde **Ajustes → Notificaciones → Activar notificaciones**, y después
+**"Mandar una de prueba"**. Si no aparece nada, revisá que el navegador no las tenga
+bloqueadas para tu sitio (candadito al lado de la URL → Notificaciones → Permitir).
+
+**Para que los recordatorios de "vencen hoy" se manden solos todos los días**, hace
+falta un Cron Job que dispare `send-payment-reminders` (por ejemplo, todas las
+mañanas a las 9). En el dashboard: **Database → Cron Jobs → Create a new cron job**,
+elegís "Supabase Edge Function" como tipo, seleccionás `send-payment-reminders`, y le
+ponés el horario (`0 9 * * *` para las 9am todos los días). Esto es opcional — sin
+cron, igual podés usar el botón de prueba manual cuando quieras.
+
+Importante: **no subas el `.env` con la clave privada a ningún lado público** (git
+está bien porque solo tiene la pública `VITE_VAPID_PUBLIC_KEY`; la privada solo vive
+como secret de Supabase).
+
 ---
 
 ## Funcionalidades
@@ -192,14 +241,11 @@ Antes de vender esto en serio a otros gimnasios, en orden de importancia:
    Con el paso de Realtime de arriba, ahora además se ve solo en pantalla sin recargar.
 2. **Deployar el frontend** (no solo las Edge Functions) a un hosting con HTTPS — Netlify o Vercel, gratis. Sin esto
    solo vos podés usar la app desde tu compu.
-3. **Probar con una segunda cuenta** (otro email) que el aislamiento entre gimnasios funciona: creá un gimnasio
-   nuevo, cargá un cliente, y confirmá que desde la cuenta original no se ve.
-4. **Activar credenciales de producción de Mercado Pago** cuando quieras cobrar plata real (las de prueba son
-   solo para testear el flujo).
-5. **Personalizar los emails de Supabase Auth** (confirmación de cuenta, recuperación de contraseña) — por defecto
-   son genéricos y en inglés. Se cambian en Authentication → Email Templates.
-6. **Notificaciones push**: queda para cuando quieras, depende de que todo lo anterior esté sólido primero
-   (necesita VAPID keys + una Edge Function con cron para mandar los recordatorios sola).
+3. ~~Probar con una segunda cuenta~~ ✅ Confirmado: el aislamiento entre gimnasios funciona.
+4. **Activar credenciales de producción de Mercado Pago** ✅ Ya lo hiciste y probaste un pago real.
+5. **Personalizar los emails de Supabase Auth** — texto en español listo para pegar, ver mensaje del chat
+   (Authentication → Email Templates → "Confirm signup" y "Reset Password").
+6. ~~Notificaciones push~~ ✅ Implementado (ver sección 7 de arriba) — falta que hagas el deploy y el paso del cron si querés que sean automáticas.
 7. Si esto se vuelve un producto real: términos de servicio, política de privacidad, y algún tipo de cobro a los
    gimnasios que lo usen (vos también vas a querer cobrarles a ellos, ¿no? Eso es otra integración de Mercado
    Pago/Stripe, pero para tus propios clientes en vez de los de ellos — avisame si llegás a ese punto).

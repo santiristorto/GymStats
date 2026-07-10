@@ -4,6 +4,7 @@ import { useToast } from "../hooks/useToast";
 import { useConfirm } from "../hooks/useConfirm";
 import { replaceAllClients, deleteAllClients } from "../services/clientService";
 import { updateGym } from "../services/gymService";
+import NotificationSettings from "./NotificationSettings";
 import "./Settings.css";
 
 const CURRENCIES = ["ARS", "USD", "EUR", "MXN", "CLP", "UYU"];
@@ -186,6 +187,8 @@ function Settings({ clients, refreshClients, settings, setSettings, gym, setGym 
           <input ref={fileInputRef} type="file" accept="application/json" hidden onChange={handleImportFile} />
         </div>
       </div>
+
+      <NotificationSettings gym={gym} />
 
       <div className="settings-card danger-zone">
         <h2>Zona de riesgo</h2>
