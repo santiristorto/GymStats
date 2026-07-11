@@ -3,7 +3,7 @@ import { Dumbbell } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import "./Login.css";
 
-function Login() {
+function Login({ onBack }) {
   const { login, signup, resetPassword } = useAuth();
   const [mode, setMode] = useState("login"); // "login" | "signup" | "forgot"
   const [email, setEmail] = useState("");
@@ -57,7 +57,7 @@ function Login() {
   return (
     <div className="login-page">
       <form className="login-card" onSubmit={handleSubmit}>
-        <div className="login-logo">
+        <div className={`login-logo ${onBack ? "clickable" : ""}`} onClick={onBack}>
           <span className="logo-mark">
             <Dumbbell size={22} />
           </span>

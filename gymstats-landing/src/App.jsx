@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import Login from "./components/Login";
+import Landing from "./components/Landing";
 import ResetPassword from "./components/ResetPassword";
 import CreateGym from "./components/CreateGym";
 import Dashboard from "./components/Dashboard";
@@ -203,6 +204,7 @@ function GymGate() {
 
 function AuthGate() {
   const { user, authLoading, passwordRecovery } = useAuth();
+  const [showAuth, setShowAuth] = useState(false);
 
   if (authLoading) {
     return (
@@ -216,7 +218,12 @@ function AuthGate() {
   // mostramos esa pantalla sin importar si ya hay una sesión activa.
   if (passwordRecovery) return <ResetPassword />;
 
-  if (!user) return <Login />;
+  if (!user) {
+    if (!showAuth) {
+      return <Landing onGetStarted={() => setShowAuth(true)} onLogin={() => setShowAuth(true)} />;
+    }
+    return <Login onBack={() => setShowAuth(false)} />;
+  }
 
   return (
     <GymProvider>

@@ -26,6 +26,11 @@
   margin-bottom: 8px;
 }
 
+.login-logo.clickable {
+  cursor: pointer;
+  width: fit-content;
+}
+
 .login-logo .logo-mark {
   width: 34px;
   height: 34px;
