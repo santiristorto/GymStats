@@ -7,9 +7,9 @@ import {
   ClipboardCheck,
   BarChart3,
   Smartphone,
-  UserCheck,
   AlertTriangle,
   ArrowRight,
+  CheckCircle2,
 } from "lucide-react";
 import "./Landing.css";
 
@@ -96,7 +96,7 @@ function useCountUp(target, active) {
   return value;
 }
 
-function useInView() {
+function useInView(threshold = 0.25) {
   const ref = useRef(null);
   const [inView, setInView] = useState(false);
 
@@ -110,22 +110,43 @@ function useInView() {
           observer.disconnect();
         }
       },
-      { threshold: 0.3 }
+      { threshold }
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [threshold]);
 
   return [ref, inView];
 }
 
+/** Envuelve una sección y la hace aparecer con un fade-up suave al entrar en pantalla. */
+function Reveal({ children, className = "" }) {
+  const [ref, inView] = useInView();
+  return (
+    <div ref={ref} className={`reveal ${inView ? "reveal-in" : ""} ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+function useScrolled(offset = 12) {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > offset);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [offset]);
+  return scrolled;
+}
+
 function DashboardMockup() {
-  const [heroRef, heroInView] = useInView();
+  const [heroRef, heroInView] = useInView(0.3);
   const activos = useCountUp(47, heroInView);
   const cobrado = useCountUp(312400, heroInView);
 
   return (
-    <div className="mockup-card" ref={heroRef}>
+    <div className="mockup-card mockup-hero" ref={heroRef}>
       <div className="mockup-header">
         <span className="mockup-dot" />
         <span className="mockup-dot" />
@@ -163,121 +184,188 @@ function DashboardMockup() {
   );
 }
 
+function PaymentsMockup() {
+  return (
+    <div className="mockup-card">
+      <div className="mockup-header">
+        <span className="mockup-dot" />
+        <span className="mockup-dot" />
+        <span className="mockup-dot" />
+        <span className="mockup-title">Pagos</span>
+      </div>
+      <div className="mockup-panel">
+        <div className="mockup-row">
+          <span>Nicolás Torres</span>
+          <span className="mockup-mini-btn">
+            <MessageCircle size={12} /> Recordar
+          </span>
+        </div>
+        <div className="mockup-row">
+          <span>Valentina Díaz</span>
+          <span className="mockup-mini-btn primary">Marcar pagado</span>
+        </div>
+        <div className="mockup-row muted">
+          <span>Camila Ruiz</span>
+          <span className="mockup-badge success">Al día</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CalendarMockup() {
+  const days = [
+    { n: 3 }, { n: 4 }, { n: 5, dot: "warning" }, { n: 6 },
+    { n: 7 }, { n: 8, dot: "danger" }, { n: 9 },
+    { n: 10, dot: "success" }, { n: 11 }, { n: 12 }, { n: 13 }, { n: 14 },
+  ];
+  return (
+    <div className="mockup-card">
+      <div className="mockup-header">
+        <span className="mockup-dot" />
+        <span className="mockup-dot" />
+        <span className="mockup-dot" />
+        <span className="mockup-title">Calendario</span>
+      </div>
+      <div className="mockup-calendar">
+        {days.map((d, i) => (
+          <div className={`mockup-cal-day ${d.dot ? "has-dot" : ""}`} key={i}>
+            {d.n}
+            {d.dot && <span className={`mockup-cal-dot ${d.dot}`} />}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Landing({ onGetStarted, onLogin }) {
   const [openFaq, setOpenFaq] = useState(null);
+  const scrolled = useScrolled();
 
   return (
     <div className="landing">
-      <nav className="landing-nav">
-        <div className="landing-logo">
-          <span className="logo-mark">
-            <Dumbbell size={18} />
-          </span>
-          <span className="logo-text">GYMSTATS</span>
-        </div>
-        <div className="landing-nav-actions">
-          <button className="landing-link" onClick={onLogin}>
-            Iniciar sesión
-          </button>
-          <button className="btn btn-primary btn-sm" onClick={onGetStarted}>
-            Empezar gratis
-          </button>
+      <nav className={`landing-nav ${scrolled ? "scrolled" : ""}`}>
+        <div className="landing-nav-inner">
+          <div className="landing-logo">
+            <span className="logo-mark">
+              <Dumbbell size={18} />
+            </span>
+            <span className="logo-text">GYMSTATS</span>
+          </div>
+          <div className="landing-nav-actions">
+            <button className="landing-link" onClick={onLogin}>
+              Iniciar sesión
+            </button>
+            <button className="btn btn-primary btn-sm" onClick={onGetStarted}>
+              Empezar gratis
+            </button>
+          </div>
         </div>
       </nav>
 
-      <header className="landing-hero">
-        <div className="landing-hero-text">
-          <span className="landing-eyebrow">Para dueños de gimnasio, no para programadores</span>
-          <h1>Dejá de perseguir cuotas por WhatsApp a mano.</h1>
-          <p className="landing-subtitle">
-            GymStats te dice quién debe, cuándo vence, y le manda el recordatorio — o el link para
-            pagar — sin que muevas un dedo.
-          </p>
-          <div className="landing-cta-row">
-            <button className="btn btn-primary" onClick={onGetStarted}>
-              Empezar gratis <ArrowRight size={16} />
-            </button>
-            <a className="btn btn-ghost" href="#funciones">
-              Ver cómo funciona
-            </a>
+      <div className="landing-inner">
+        <header className="landing-hero">
+          <div className="landing-hero-text">
+            <span className="landing-eyebrow">Para dueños de gimnasio, no para programadores</span>
+            <h1>Dejá de perseguir cuotas por WhatsApp a mano.</h1>
+            <p className="landing-subtitle">
+              GymStats te dice quién debe, cuándo vence, y le manda el recordatorio — o el link para
+              pagar — sin que muevas un dedo.
+            </p>
+            <div className="landing-cta-row">
+              <button className="btn btn-primary" onClick={onGetStarted}>
+                Empezar gratis <ArrowRight size={16} />
+              </button>
+              <a className="btn btn-ghost" href="#funciones">
+                Ver cómo funciona
+              </a>
+            </div>
+            <p className="landing-trust">
+              <CheckCircle2 size={14} /> Gratis para empezar · sin tarjeta de crédito
+            </p>
           </div>
-        </div>
-        <div className="landing-hero-visual">
-          <DashboardMockup />
-        </div>
-      </header>
+          <div className="landing-hero-visual">
+            <DashboardMockup />
+          </div>
+        </header>
 
-      <section className="landing-pain">
-        <h2>Si esto te suena familiar...</h2>
-        <div className="pain-list">
-          {PAIN_POINTS.map((text) => (
-            <div className="pain-item" key={text}>
-              <AlertTriangle size={18} />
-              <p>{text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="landing-features" id="funciones">
-        <h2>Todo lo que hoy hacés a mano, en un solo lugar</h2>
-        <div className="features-grid">
-          {FEATURES.map(({ icon: Icon, title, text }) => (
-            <div className="feature-card" key={title}>
-              <div className="feature-icon">
-                <Icon size={20} />
+        <Reveal className="landing-pain">
+          <h2>Si esto te suena familiar...</h2>
+          <div className="pain-list">
+            {PAIN_POINTS.map((text) => (
+              <div className="pain-item" key={text}>
+                <AlertTriangle size={18} />
+                <p>{text}</p>
               </div>
-              <h3>{title}</h3>
-              <p>{text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </Reveal>
 
-      <section className="landing-preview">
-        <div className="preview-text">
-          <UserCheck size={22} />
+        <Reveal className="landing-features" id="funciones">
+          <h2>Todo lo que hoy hacés a mano, en un solo lugar</h2>
+          <div className="features-grid">
+            {FEATURES.map(({ icon: Icon, title, text }) => (
+              <div className="feature-card" key={title}>
+                <div className="feature-icon">
+                  <Icon size={20} />
+                </div>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </div>
+            ))}
+          </div>
+        </Reveal>
+
+        <Reveal className="landing-preview">
           <h2>Se ve como tu negocio, no como una planilla</h2>
           <p>
             Cada cliente, cada pago, cada vencimiento — organizado para que lo entiendas de un
             vistazo, no para que lo tengas que interpretar.
           </p>
-        </div>
-      </section>
+          <div className="preview-gallery">
+            <PaymentsMockup />
+            <CalendarMockup />
+          </div>
+        </Reveal>
 
-      <section className="landing-faq">
-        <h2>Preguntas frecuentes</h2>
-        <div className="faq-list">
-          {FAQS.map((item, i) => (
-            <div className={`faq-item ${openFaq === i ? "open" : ""}`} key={item.q}>
-              <button className="faq-question" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
-                {item.q}
-                <span className="faq-toggle">{openFaq === i ? "−" : "+"}</span>
-              </button>
-              {openFaq === i && <p className="faq-answer">{item.a}</p>}
-            </div>
-          ))}
-        </div>
-      </section>
+        <Reveal className="landing-faq">
+          <h2>Preguntas frecuentes</h2>
+          <div className="faq-list">
+            {FAQS.map((item, i) => (
+              <div className={`faq-item ${openFaq === i ? "open" : ""}`} key={item.q}>
+                <button className="faq-question" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+                  {item.q}
+                  <span className="faq-toggle">{openFaq === i ? "−" : "+"}</span>
+                </button>
+                {openFaq === i && <p className="faq-answer">{item.a}</p>}
+              </div>
+            ))}
+          </div>
+        </Reveal>
 
-      <section className="landing-final-cta">
-        <h2>Probalo con tus clientes reales, gratis.</h2>
-        <button className="btn btn-primary" onClick={onGetStarted}>
-          Empezar gratis <ArrowRight size={16} />
-        </button>
-      </section>
+        <Reveal className="landing-final-cta">
+          <h2>Probalo con tus clientes reales, gratis.</h2>
+          <button className="btn btn-primary" onClick={onGetStarted}>
+            Empezar gratis <ArrowRight size={16} />
+          </button>
+        </Reveal>
 
-      <footer className="landing-footer">
-        <div className="landing-logo">
-          <span className="logo-mark">
-            <Dumbbell size={16} />
-          </span>
-          <span className="logo-text">GYMSTATS</span>
-        </div>
-        <button className="landing-link" onClick={onLogin}>
-          Iniciar sesión
-        </button>
-      </footer>
+        <footer className="landing-footer">
+          <div className="landing-logo">
+            <span className="logo-mark">
+              <Dumbbell size={16} />
+            </span>
+            <span className="logo-text">GYMSTATS</span>
+          </div>
+          <div className="landing-footer-right">
+            <button className="landing-link" onClick={onLogin}>
+              Iniciar sesión
+            </button>
+            <span className="landing-copyright">© {new Date().getFullYear()} GymStats</span>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }

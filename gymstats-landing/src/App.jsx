@@ -5,6 +5,7 @@ import Login from "./components/Login";
 import Landing from "./components/Landing";
 import ResetPassword from "./components/ResetPassword";
 import CreateGym from "./components/CreateGym";
+import LoadingScreen from "./components/LoadingScreen";
 import Dashboard from "./components/Dashboard";
 import Clients from "./components/Clients";
 import Attendance from "./components/Attendance";
@@ -128,11 +129,7 @@ function AppShell() {
   };
 
   if (loading) {
-    return (
-      <div className="loading-screen">
-        <h2>Cargando GymStats...</h2>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   const { label, Component } = VIEWS[view];
@@ -155,18 +152,20 @@ function AppShell() {
 
           <main className="content">
             <Suspense fallback={<p>Cargando...</p>}>
-              <Component
-                clients={clients}
-                setClients={setClients}
-                refreshClients={refreshClients}
-                settings={settings}
-                setSettings={setSettings}
-                gym={gym}
-                setGym={setGym}
-                onOpenClient={openClient}
-                focusClientId={view === "clients" ? focusClientId : null}
-                onFocusHandled={() => setFocusClientId(null)}
-              />
+              <div className="view-transition" key={view}>
+                <Component
+                  clients={clients}
+                  setClients={setClients}
+                  refreshClients={refreshClients}
+                  settings={settings}
+                  setSettings={setSettings}
+                  gym={gym}
+                  setGym={setGym}
+                  onOpenClient={openClient}
+                  focusClientId={view === "clients" ? focusClientId : null}
+                  onFocusHandled={() => setFocusClientId(null)}
+                />
+              </div>
             </Suspense>
           </main>
         </div>
@@ -179,20 +178,11 @@ function GymGate() {
   const { gym, gymLoading, gymError, setGym } = useGym();
 
   if (gymLoading) {
-    return (
-      <div className="loading-screen">
-        <h2>Cargando GymStats...</h2>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (gymError) {
-    return (
-      <div className="loading-screen">
-        <h2>No se pudo cargar tu gimnasio</h2>
-        <p>{gymError}</p>
-      </div>
-    );
+    return <LoadingScreen title="No se pudo cargar tu gimnasio" subtitle={gymError} />;
   }
 
   if (!gym) {
@@ -207,11 +197,7 @@ function AuthGate() {
   const [showAuth, setShowAuth] = useState(false);
 
   if (authLoading) {
-    return (
-      <div className="loading-screen">
-        <h2>Cargando GymStats...</h2>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   // Prioridad: si viene del link de "restablecer contraseña" del mail,
