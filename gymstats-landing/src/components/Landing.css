@@ -1,4 +1,23 @@
+.landing {
+  position: relative;
+  background-image: radial-gradient(circle, var(--color-border-strong) 1px, transparent 1px);
+  background-size: 26px 26px;
+  background-position: center top;
+}
+
+.landing::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  height: 640px;
+  background: linear-gradient(to bottom, transparent 0%, var(--color-bg) 92%);
+  pointer-events: none;
+  z-index: 0;
+}
+
 .landing-inner {
+  position: relative;
+  z-index: 1;
   max-width: 1180px;
   margin: 0 auto;
   padding: 0 24px;
@@ -181,6 +200,8 @@
 
 .mockup-card.mockup-hero {
   max-width: 380px;
+  transition: transform 250ms ease;
+  transform-style: preserve-3d;
 }
 
 .mockup-header {

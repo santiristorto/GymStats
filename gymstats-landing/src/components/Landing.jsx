@@ -120,10 +120,10 @@ function useInView(threshold = 0.25) {
 }
 
 /** Envuelve una sección y la hace aparecer con un fade-up suave al entrar en pantalla. */
-function Reveal({ children, className = "" }) {
+function Reveal({ children, className = "", id }) {
   const [ref, inView] = useInView();
   return (
-    <div ref={ref} className={`reveal ${inView ? "reveal-in" : ""} ${className}`}>
+    <div ref={ref} id={id} className={`reveal ${inView ? "reveal-in" : ""} ${className}`}>
       {children}
     </div>
   );
@@ -145,8 +145,26 @@ function DashboardMockup() {
   const activos = useCountUp(47, heroInView);
   const cobrado = useCountUp(312400, heroInView);
 
+  const handleMouseMove = (e) => {
+    const card = heroRef.current;
+    if (!card || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const rect = card.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    card.style.transform = `perspective(700px) rotateY(${x * 8}deg) rotateX(${-y * 8}deg)`;
+  };
+
+  const handleMouseLeave = () => {
+    if (heroRef.current) heroRef.current.style.transform = "";
+  };
+
   return (
-    <div className="mockup-card mockup-hero" ref={heroRef}>
+    <div
+      className="mockup-card mockup-hero"
+      ref={heroRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
       <div className="mockup-header">
         <span className="mockup-dot" />
         <span className="mockup-dot" />
